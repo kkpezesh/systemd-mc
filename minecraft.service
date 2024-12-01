@@ -7,7 +7,7 @@ After=network.target
 User=minecraft
 Group=minecraft
 AmbientCapabilities=CAP_NET_BIND_SERVICE
-ExecStart=/usr/bin/java -Xmx3072M -Xms1024M -XX:+UnlockExperimentalVMOptions -XX:+UseZGC -jar server.jar --nogui
+ExecStart=/usr/bin/java -Xms12G -Xmx12G -XX:+UnlockExperimentalVMOptions -XX:+UseZGC -XX:+ZGenerational -jar server.jar --nogui
 Restart=always
 WorkingDirectory=/var/minecraft
 
