@@ -1,5 +1,5 @@
 ### 411
-This repo documents steps taken to run a Minecraft 1.21.3 server on an Ubuntu VPS
+This repo documents steps taken to run a Minecraft 1.21.4 server on an Ubuntu VPS
 
 ### Resources
 * [Paper MC](https://docs.papermc.io/paper/getting-started)
@@ -10,6 +10,7 @@ This repo documents steps taken to run a Minecraft 1.21.3 server on an Ubuntu VP
 * [nftables Wiki](https://wiki.nftables.org/wiki-nftables/index.php)
 * [nginx docs](https://docs.nginx.com/nginx/admin-guide)
 * [Bluemap docs](https://bluemap.bluecolored.de)
+* [Tiiffi - mcrcon](https://github.com/Tiiffi/mcrcon)
 
 ### SSH config (optional)
 Add VPS entry to your ssh config (~/.ssh/config)
@@ -29,14 +30,58 @@ ssh vps
 su -
 ```
 
+### SSHD config
+Add SSHD configs to:
+* disconnect clients after 2 failed authentication attemps
+* disable password based authentication
+    * Password based authentication is fine. Beware of setting weak user passwords when this setting is enabled
+* disable keyboard interactive authentication
+    * Enable this feature if you setup alternative authentication methods like MFA via OTP (any sort of plugin authentication module/PAM)
+* disable use of plugin authentication modules
+    * see above
+* disable SSH agent forwarding
+    * a server with a client's SSH agent can authenticate as the client with other servers
+* disable TCP forwarding
+    * prevent clients from using this server as a TCP proxy
+* disable X11 forwarding
+    * we don't require graphical access to this server
+
+```
+MaxAuthTries 2
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+UsePAM no
+AllowAgentForwarding no
+AllowTcpForwarding no
+X11Forwarding no
+```
+
+### Configure /etc/sysctl.conf
+Run through your /etc/sysctl.conf and uncomment lines as you see fit
+* ex: block ICMP/ping requests
+* ex2: block ICMP redirects
+* ex3: log martian packets
+    * see [Martian packet](https://en.wikipedia.org/wiki/Martian_packet) for more information
+
+Reload Linux kernel parameters
+```
+sysctl -p
+```
+
 ### Install JRE
+Install a Java runtime environment for running the server process
 ```
 apt update && apt upgrade
 apt install openjdk-21-jre-headless
 ```
 
+Verify `java` is installed
+```
+java --version
+```
+
 ### Setup System Group + User
-[PoLP](https://en.wikipedia.org/wiki/Principle_of_least_privilege) 😂
+Follow [PoLP](https://en.wikipedia.org/wiki/Principle_of_least_privilege) and set up a dedicated Linux user + group 😂
 ```
 mkdir -p /var/minecraft
 groupadd -f -r minecraft
@@ -44,15 +89,27 @@ useradd -g minecraft -s /sbin/nologin -d /var/minecraft minecraft
 chown -R minecraft:minecraft /var/minecraft
 ```
 
+Verify `minecraft` user creation
+```
+# username:password:UID:GID:GECOS:home_directory:shell
+cat /etc/passwd | grep minecraft
+```
+
+Verify `minecraft` group creation
+```
+# group_name:password:GID:user_list
+cat /etc/group | grep minecraft
+```
+
 ### Install server JAR
 Find desired PaperMC server versions [here](https://papermc.io/downloads/all)
 ```
-curl "https://api.papermc.io/v2/projects/paper/versions/1.21.3/builds/60/downloads/paper-1.21.3-60.jar" > /var/minecraft/server.jar
+curl "https://api.papermc.io/v2/projects/paper/versions/1.21.4/builds/118/downloads/paper-1.21.4-118.jar" > /var/minecraft/server.jar
 ```
 
-Verify checksum
+Verify `server.jar` checksum
 ```
-sha256sum /var/minecraft/server
+sha256sum /var/minecraft/server.jar
 chown -R minecraft:minecraft /var/minecraft
 ```
 
@@ -64,6 +121,7 @@ vim /var/minecraft/eula.txt
 ```
 
 ### JVM flags
+Set JVM flags to tune server performance
 * -Xmx sets max heap size
 * -Xms sets initial heap size
 
@@ -73,11 +131,11 @@ vim /var/minecraft/eula.txt
 
 Configure server.properties
 * use [Minecraft wiki - Server.properties](https://minecraft.wiki/w/Server.properties) for a thorough description of each field
-* ex: set difficulty to hard, server-port to 444
+* ex: set difficulty to hard, server-port to 7000
 
 ### systemd Service Setup
 Setup minecraft systemd service
-* copy/paste using the minecraft.service file in this repo
+* copy/paste using the `minecraft.service` file in this repo
 * set ExecStart to match your JVM tuning in the previous setps
 
 ```
@@ -150,6 +208,11 @@ Start nftables
 systemctl start nftables
 ```
 
+Validate nftables configuration
+```
+nft list ruleset
+```
+
 ### Bluemap setup
 Follow intructions at [Bluemap - Installation](https://bluemap.bluecolored.de/wiki/getting-started/Installation.html)
 
@@ -181,3 +244,46 @@ Start nginx
 ```
 systemctl start nginx
 ```
+
+### rcon setup
+Setup RCON to enable remote execution of commands
+* WARNING: Ensure nftables doesn't allow inbound traffic to rcon (subject to MITM). See [here](https://minecraft.wiki/w/RCON) for more info
+* Install the `mcrcon` tool published at [Tiiffi/mcrcon](https://github.com/Tiiffi/mcrcon)
+
+```
+cd /root
+git clone https://github.com/Tiiffi/mcrcon.git
+cd /root/mcrcon
+apt install make gcc
+make
+mv mcrcon /usr/bin
+```
+
+* Validate `mcrcon` tool is installed
+
+```
+mcrcon -h
+```
+
+* Enable RCON in server.properties and configure a port (ex: 25575)
+* Optional: Update your bashrc with `mcrcon` inputs
+
+```
+vim /root/.bashrc
+export MCRCON_HOST="localhost"
+export MCRCON_PORT="25575"
+export MCRCON_PASS="dont-expose-this-svc-to-inet-123"
+```
+
+* Restart your server and validate rcon is working
+
+```
+mcrcon
+say "testing 123.. Hello Minecraft"
+Q
+```
+
+
+### TODO: DNS
+
+### TODO: TLS certificates
