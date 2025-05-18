@@ -2,7 +2,7 @@
 This repo documents steps taken to run a Minecraft 1.21.4 server on an Ubuntu VPS
 
 ### Resources
-* [Paper MC](https://docs.papermc.io/paper/getting-started)
+* [FabricMC - Server](https://fabricmc.net/use/server)
 * [WilhelmRoscher - MC systemd service file](https://github.com/WilhelmRoscher/minecraft-systemd-service-file)
 * [brucethemoose - MC Performance Flags Benchmarks](https://github.com/brucethemoose/Minecraft-Performance-Flags-Benchmarks)
 * [YouHaveTrouble - MC optimization](https://github.com/YouHaveTrouble/minecraft-optimization)
@@ -12,7 +12,7 @@ This repo documents steps taken to run a Minecraft 1.21.4 server on an Ubuntu VP
 * [Bluemap docs](https://bluemap.bluecolored.de)
 * [Tiiffi - mcrcon](https://github.com/Tiiffi/mcrcon)
 
-### SSH config (optional)
+### Optional: SSH config
 Add VPS entry to your ssh config (~/.ssh/config)
 ```
 Host vps
@@ -31,7 +31,7 @@ su -
 ```
 
 ### SSHD config
-Add SSHD configs to:
+Add SSHD configs to
 * disconnect clients after 2 failed authentication attemps
 * disable password based authentication
     * Password based authentication is fine. Beware of setting weak user passwords when this setting is enabled
@@ -102,14 +102,24 @@ cat /etc/group | grep minecraft
 ```
 
 ### Install server JAR
-Find desired PaperMC server versions [here](https://papermc.io/downloads/all)
+Find desired FabricMC server versions [here](https://fabricmc.net/use/server)
 ```
-curl "https://api.papermc.io/v2/projects/paper/versions/1.21.4/builds/118/downloads/paper-1.21.4-118.jar" > /var/minecraft/server.jar
+curl -OJ https://meta.fabricmc.net/v2/versions/loader/1.21.5/0.16.14/1.0.3/server/jar
+mv -i fabric-server-mc.1.21.5-loader.0.16.14-launcher.1.0.3.jar /var/minecraft
+ln -s /var/minecraft/fabric-server-mc.1.21.5-loader.0.16.14-launcher.1.0.3.jar /var/minecraft/server.jar
 ```
 
 Verify `server.jar` checksum
 ```
 sha256sum /var/minecraft/server.jar
+chown -R minecraft:minecraft /var/minecraft
+```
+
+### Install Fabric API JAR
+Find desired Fabric API versions [here](https://modrinth.com/mod/fabric-api)
+```
+cd /var/minecraft/mods
+curl -OJL "https://cdn.modrinth.com/data/P7dR8mSH/versions/vcgUMTb2/fabric-api-0.124.0+1.21.5.jar"
 chown -R minecraft:minecraft /var/minecraft
 ```
 
@@ -214,10 +224,10 @@ nft list ruleset
 ```
 
 ### Bluemap setup
-Follow intructions at [Bluemap - Installation](https://bluemap.bluecolored.de/wiki/getting-started/Installation.html)
+Follow instructions at [Bluemap - Installation](https://bluemap.bluecolored.de/wiki/getting-started/Installation.html)
 
 ```
-curl -L "https://github.com/BlueMap-Minecraft/BlueMap/releases/download/v5.5/bluemap-5.5-paper.jar" > /var/minecraft/plugins/bluemap-5.5-paper.jar
+curl -L "https://github.com/BlueMap-Minecraft/BlueMap/releases/download/v5.7/bluemap-5.7-fabric.jar" > /var/minecraft/mods/bluemap-5.7-fabric.jar
 chown -R minecraft:minecraft /var/minecraft
 ```
 
@@ -284,6 +294,32 @@ Q
 ```
 
 
-### TODO: DNS
+### DNS
+Setup DNS for your server
+* Purchase domain from a domain registrar
+* Setup A/AAAA record(s)
+* Create NS delegations + complete zone transfer
 
-### TODO: TLS certificates
+Optional: Set your server's hostname locally
+
+```
+hostnamectl hostname my-hostname.example.com
+```
+
+### TLS certificates from Let's Encrypt
+Setup a TLS certificate for your server
+* Install `certbot` - `apt install certbot`
+* Setup auth + cleanup hooks
+
+Reference: https://community.hetzner.com/tutorials/letsencrypt-dns
+
+```
+certbot run -a manual -i nginx \
+--register-unsafely-without-email \
+--key-type ecdsa \
+--elliptic-curve secp384r1 \
+--preferred-challenges=dns \
+--manual-auth-hook /usr/local/bin/certbot-hetzner-auth.sh \
+--manual-cleanup-hook /usr/local/bin/certbot-hetzner-cleanup.sh \
+-d <insert_fqdn> -d *.<insert_fqdn>
+```
