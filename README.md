@@ -104,9 +104,9 @@ cat /etc/group | grep minecraft
 ### Install server JAR
 Find desired FabricMC server versions [here](https://fabricmc.net/use/server)
 ```
-curl -OJ https://meta.fabricmc.net/v2/versions/loader/1.21.5/0.16.14/1.0.3/server/jar
-mv -i fabric-server-mc.1.21.5-loader.0.16.14-launcher.1.0.3.jar /var/minecraft
-ln -s /var/minecraft/fabric-server-mc.1.21.5-loader.0.16.14-launcher.1.0.3.jar /var/minecraft/server.jar
+curl -OJ https://meta.fabricmc.net/v2/versions/loader/1.21.6/0.16.14/1.0.3/server/jar
+mv -i fabric-server-mc.1.21.6-loader.0.16.14-launcher.1.0.3.jar /var/minecraft
+ln -siv /var/minecraft/fabric-server-mc.1.21.6-loader.0.16.14-launcher.1.0.3.jar /var/minecraft/server.jar
 ```
 
 Verify `server.jar` checksum
@@ -119,7 +119,7 @@ chown -R minecraft:minecraft /var/minecraft
 Find desired Fabric API versions [here](https://modrinth.com/mod/fabric-api)
 ```
 cd /var/minecraft/mods
-curl -OJL "https://cdn.modrinth.com/data/P7dR8mSH/versions/vcgUMTb2/fabric-api-0.124.0+1.21.5.jar"
+curl -OJL "https://cdn.modrinth.com/data/P7dR8mSH/versions/N3z6cNQv/fabric-api-0.127.1+1.21.6.jar"
 chown -R minecraft:minecraft /var/minecraft
 ```
 
@@ -227,7 +227,7 @@ nft list ruleset
 Follow instructions at [Bluemap - Installation](https://bluemap.bluecolored.de/wiki/getting-started/Installation.html)
 
 ```
-curl -L "https://github.com/BlueMap-Minecraft/BlueMap/releases/download/v5.7/bluemap-5.7-fabric.jar" > /var/minecraft/mods/bluemap-5.7-fabric.jar
+curl -L "https://github.com/BlueMap-Minecraft/BlueMap/releases/download/v5.9/bluemap-5.9-fabric.jar" > /var/minecraft/mods/bluemap-5.9-fabric.jar
 chown -R minecraft:minecraft /var/minecraft
 ```
 
